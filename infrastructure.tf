@@ -120,9 +120,9 @@ resource "aws_security_group" "db_sg" {
   description = "Security group for RDS instance for database"
   vpc_id      = aws_vpc.tf_vpc.id
   ingress {
-    protocol    = "tcp"
-    from_port   = "3306"
-    to_port     = "3306"
+    protocol        = "tcp"
+    from_port       = "3306"
+    to_port         = "3306"
     security_groups = [aws_security_group.app_sg.id]
   }
   tags = {
