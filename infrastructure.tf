@@ -8,7 +8,7 @@ resource "aws_vpc" "tf_vpc" {
   cidr_block           = var.cidr_block
   enable_dns_hostnames = true
   tags = {
-    "name" = var.vpc_name
+    "Name" = var.vpc_name
   }
 }
 
@@ -19,7 +19,7 @@ resource "aws_subnet" "subnet1" {
   availability_zone       = join("", [var.region, var.azs[0]])
   map_public_ip_on_launch = true
   tags = {
-    "name" = "subnet1"
+    "Name" = "subnet1"
   }
 }
 
@@ -30,7 +30,7 @@ resource "aws_subnet" "subnet2" {
   availability_zone       = join("", [var.region, var.azs[1]])
   map_public_ip_on_launch = true
   tags = {
-    "name" = "subnet2"
+    "Name" = "subnet2"
   }
 }
 
@@ -41,6 +41,91 @@ resource "aws_subnet" "subnet3" {
   availability_zone       = join("", [var.region, var.azs[2]])
   map_public_ip_on_launch = true
   tags = {
-    "name" = "subnet3"
+    "Name" = "subnet3"
+  }
+}
+
+# Internet gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.tf_vpc.id
+  tags = {
+    "Name" = "tf-igw"
+  }
+}
+
+# Route table
+resource "aws_route_table" "rtb" {
+  vpc_id = aws_vpc.tf_vpc.id
+  tags = {
+    "Name" = "tf-rtb"
+  }
+}
+
+# Public route
+resource "aws_route" "public_route" {
+  route_table_id         = aws_route_table.rtb.id
+  gateway_id             = aws_internet_gateway.igw.id
+  destination_cidr_block = "0.0.0.0/0"
+}
+
+# Subnet route table association 1
+resource "aws_route_table_association" "assoc1" {
+  subnet_id      = aws_subnet.subnet1.id
+  route_table_id = aws_route_table.rtb.id
+}
+
+# Subnet route table association 2
+resource "aws_route_table_association" "assoc2" {
+  subnet_id      = aws_subnet.subnet2.id
+  route_table_id = aws_route_table.rtb.id
+}
+
+# Subnet route table association 3
+resource "aws_route_table_association" "assoc3" {
+  subnet_id      = aws_subnet.subnet3.id
+  route_table_id = aws_route_table.rtb.id
+}
+
+# Application security group
+resource "aws_security_group" "app_sg" {
+  name        = "application"
+  description = "Security group for EC2 instance with web application"
+  vpc_id      = aws_vpc.tf_vpc.id
+  ingress {
+    protocol    = "tcp"
+    from_port   = "22"
+    to_port     = "22"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    protocol    = "tcp"
+    from_port   = "80"
+    to_port     = "80"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    protocol    = "tcp"
+    from_port   = "443"
+    to_port     = "443"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    "Name" = "application-sg"
+  }
+}
+
+# Database security group
+resource "aws_security_group" "db_sg" {
+  name        = "database"
+  description = "Security group for RDS instance for database"
+  vpc_id      = aws_vpc.tf_vpc.id
+  ingress {
+    protocol    = "tcp"
+    from_port   = "3306"
+    to_port     = "3306"
+    security_groups = [aws_security_group.app_sg.id]
+  }
+  tags = {
+    "Name" = "database-sg"
   }
 }
