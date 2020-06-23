@@ -149,6 +149,55 @@ resource "aws_s3_bucket" "s3_bucket" {
   }
 }
 
+#iam role
+resource "aws_iam_role" "ec2_role" {
+  description        = "Policy for EC2 instance"
+  name               = "tf-ec2-role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17", 
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole", 
+      "Effect": "Allow", 
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      }
+    }
+  ]
+}
+EOF
+  tags = {
+    "Name" = "ec2-iam-role"
+  }
+}
+
+#policy document
+data "aws_iam_policy_document" "policy_document" {
+  version = "2012-10-17"
+  statement {
+    actions = [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DeleteObject",
+      "s3:ListBucket"
+    ]
+    resources = [
+      "${aws_s3_bucket.s3_bucket.arn}",
+      "${aws_s3_bucket.s3_bucket.arn}/*"
+    ]
+  }
+  depends_on = [aws_s3_bucket.s3_bucket]
+}
+
+#iam policy for role
+resource "aws_iam_role_policy" "s3_policy" {
+  name       = "tf-s3-policy"
+  role       = aws_iam_role.ec2_role.id
+  policy     = data.aws_iam_policy_document.policy_document.json
+  depends_on = [aws_s3_bucket.s3_bucket]
+}
+
 #outputs
 output "vpc_id" {
   value = aws_vpc.tf_vpc.id
@@ -156,4 +205,8 @@ output "vpc_id" {
 
 output "bucket_domain_name" {
   value = aws_s3_bucket.s3_bucket.bucket_domain_name
+}
+
+output "bucket_arn" {
+  value = aws_s3_bucket.s3_bucket.arn
 }
