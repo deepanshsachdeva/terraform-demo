@@ -8,6 +8,10 @@ variable "region" {
   default     = "us-east-1"
 }
 
+variable "amis" {
+  type = map
+}
+
 variable "vpc_name" {
   description = "VPC name tag value."
   default     = "vpc"
@@ -26,4 +30,52 @@ variable "cidrs" {
 variable "azs" {
   description = "Availability zones for subnets."
   default     = ["a", "b", "c"]
+}
+
+variable "db_storage_size" {
+  description = "Availability zones for subnets."
+  type        = number
+  default     = 20
+}
+
+variable "db_instance_class" {
+  description = "Instance class for RDS"
+  default     = "db.t3.micro"
+}
+
+variable "db_engine" {
+  description = "DB engine for RDS"
+  default     = "mysql"
+}
+
+variable "db_engine_version" {
+  description = "DB engine version for RDS"
+  default     = "5.7.22"
+}
+
+variable "db_name" {
+  description = "DB name"
+  default     = "testdb"
+}
+
+variable "db_username" {
+  description = "DB username"
+  default     = "dbuser"
+}
+
+variable "db_password" {
+  description = "DB password"
+  default     = "DBSummer2020"
+}
+
+variable "db_public_access" {
+  description = "DB public accessibility"
+  type        = bool
+  default     = false
+}
+
+variable "db_multiaz" {
+  description = "DB multi AZ"
+  type        = bool
+  default     = false
 }
