@@ -251,6 +251,20 @@ resource "aws_instance" "ec2" {
     volume_size           = var.instance_vol_size
     delete_on_termination = true
   }
+  user_data = <<EOF
+#!/bin/bash
+echo "# App Environment Variables"
+echo "export DB_HOST=${aws_db_instance.rds.address}" >> /etc/environment
+echo "export DB_PORT=${aws_db_instance.rds.port}" >> /etc/environment
+echo "export DB_DATABASE=${var.db_name}" >> /etc/environment
+echo "export DB_USERNAME=${var.db_username}" >> /etc/environment
+echo "export DB_PASSWORD=${var.db_password}" >> /etc/environment
+echo "export FILESYSTEM_DRIVER=s3" >> /etc/environment
+echo "export AWS_BUCKET=${aws_s3_bucket.s3_bucket.id}" >> /etc/environment
+echo "export AWS_DEFAULT_REGION=${var.region}" >> /etc/environment
+chown -R ubuntu:www-data /var/www
+usermod -a -G www-data ubuntu
+EOF
   tags = {
     "Name" = "ec2"
   }
