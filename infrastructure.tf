@@ -109,6 +109,12 @@ resource "aws_security_group" "app_sg" {
     to_port     = "443"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   tags = {
     "Name" = "application-sg"
   }
@@ -227,6 +233,30 @@ resource "aws_db_instance" "rds" {
   }
 }
 
+#iam instance profile for ec2
+resource "aws_iam_instance_profile" "ec2_profile" {
+  role = aws_iam_role.ec2_role.name
+}
+
+resource "aws_instance" "ec2" {
+  ami                  = var.amis[var.region]
+  instance_type        = var.instance_type
+  subnet_id            = element([aws_subnet.subnet1.id, aws_subnet.subnet2.id, aws_subnet.subnet3.id], var.instance_subnet - 1)
+  key_name             = var.key_name
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.id
+  security_groups      = [aws_security_group.app_sg.id]
+  ebs_block_device {
+    device_name           = "/dev/sda1"
+    volume_type           = var.instance_vol_type
+    volume_size           = var.instance_vol_size
+    delete_on_termination = true
+  }
+  tags = {
+    "Name" = "ec2"
+  }
+  depends_on = [aws_db_instance.rds]
+}
+
 #outputs
 output "vpc_id" {
   value = aws_vpc.tf_vpc.id
@@ -242,4 +272,8 @@ output "bucket_arn" {
 
 output "rds_address" {
   value = aws_db_instance.rds.address
+}
+
+output "ec2_public_ip" {
+  value = aws_instance.ec2.public_ip
 }
