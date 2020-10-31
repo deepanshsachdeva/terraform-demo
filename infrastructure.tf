@@ -155,7 +155,7 @@ resource "aws_s3_bucket" "s3_bucket" {
   }
 }
 
-#iam role
+#iam role for ec2
 resource "aws_iam_role" "ec2_role" {
   description        = "Policy for EC2 instance"
   name               = "tf-ec2-role"
@@ -269,6 +269,56 @@ EOF
     "Name" = "ec2"
   }
   depends_on = [aws_db_instance.rds]
+}
+
+#iam role for codedeploy
+resource "aws_iam_role" "codedeploy_role" {
+  description        = "Allows CodeDeploy to call AWS services such as auto scaling on your behalf"
+  name               = "tf-codedeploy-role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17", 
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole", 
+      "Effect": "Allow", 
+      "Principal": {
+        "Service": "codedeploy.amazonaws.com"
+      }
+    }
+  ]
+}
+EOF
+
+  tags = {
+    "Name" = "codedeploy-iam-role"
+  }
+}
+
+resource "aws_codedeploy_app" "codedeploy_app" {
+  compute_platform = "Server"
+  name             = "webapp"
+  depends_on       = [aws_instance.ec2]
+}
+
+resource "aws_codedeploy_deployment_group" "deployment_group" {
+  app_name              = aws_codedeploy_app.codedeploy_app.name
+  deployment_group_name = "ebapp-deployment"
+  deployment_style {
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_type   = "IN_PLACE"
+  }
+  auto_rollback_configuration {
+    enabled = true
+    events  = ["DEPLOYMENT_FAILURE"]
+  }
+  deployment_config_name = "CodeDeployDefault.AllAtOnce"
+  ec2_tag_filter {
+    key   = "Name"
+    type  = "KEY_AND_VALUE"
+    value = "ec2"
+  }
+  service_role_arn = aws_iam_role.codedeploy_role.arn
 }
 
 #outputs
